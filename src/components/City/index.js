@@ -1,69 +1,60 @@
 import React, {useEffect, useState} from 'react';
-import {View, Text} from 'react-native';
-import {create} from 'apisauce';
-import {useSelector} from 'react-redux';
+import { Text} from 'react-native';
+import {useSelector, useDispatch} from 'react-redux';
 import styles from './style';
 
+
 export default function City(props) {
+
   const [city, setCity] = useState('');
   const [temperature, setTemperature] = useState(null);
 
-  useEffect(() => {
-    getCity();
-    fetchTemperature();
-  }, []);
 
   const data = useSelector((state) => {
-    return state.fetchTempReducer.data;
+    return state.fetchTempReducer.currentData;
   });
 
-  const getCity = () => {
-    const api = create({
-      baseURL: `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${props.coordinates.lat}&longitude=${props.coordinates.lng}&localityLanguage=en`,
-    });
-    api.get()
-      .then((res) => {
-        let {city, locality} = res.data;
-        if (city == '') {
-          setCity(locality);
-        } else {
-          setCity(city);
-        }
-      })
-      .catch((err) => {
-        console.warn(err);
-      });
-  };
+
+
+  const cityName = useSelector((state) => {
+    return state.fetchTempReducer.city;
+  });
+  
+
+  useEffect(() => {
+    fetchTemperature();
+  }, [data]);
+
+
+  useEffect(() => {
+    applyCityName()
+  }, [cityName]);
+
 
   const fetchTemperature = () => {
-    let currentHour = new Date().getHours();
-    let currentDate = new Date().getDate();
-    let {list} = data;
-    let dateArr = [];
-    
-  list.forEach((item)=>{
-       let txt= item.dt_txt.split(" ")
-       let elementDate = txt[0].split("-")
-       let date = elementDate[elementDate.length -1]
-        if(currentDate == date){
-            let elementHour = txt[1].split(":")
-            let hour = elementHour[0]
-            let calculate = hour-currentHour
-            if(calculate == 0||calculate==1 || calculate==2){
-                dateArr.push(item)
-            }
-        }
-    })
-    let temp = dateArr[0].main.temp
-    setTemperature(temp)
+    if (Object.keys(data).length !== 0) {
+      setTemperature(data.main.temp);
+    }
   };
 
+  const applyCityName =()=>{
+      let {locality, city} = cityName
+      if(city !== ""){
+          setCity(city)
+      }
+      else {
+          setCity(locality)
+      }
+  }
+
   return (
-    <View>
-      <Text style={styles.textDesign}>{temperature}°C</Text>
-      <Text style={styles.textDesign}>
+    <>
+      <Text style={styles.textDesign }>
+        {temperature !== null ? temperature+"°C" : null}
+      </Text>
+      <Text style={styles.textDesign }>
         {city}
       </Text>
-    </View>
+    </>
   );
 }

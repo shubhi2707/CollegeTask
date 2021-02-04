@@ -1,21 +1,66 @@
-import React, {useEffect, useState} from 'react';
-import {View, Text, PermissionsAndroid, Platform, Alert} from 'react-native';
+import React, {useEffect, useState, useRef} from 'react';
+import {View, PermissionsAndroid, Platform, Alert} from 'react-native';
 import Loader from '../../components/Loader';
 import Geolocation from 'react-native-geolocation-service';
-import {create} from 'apisauce';
 import {useDispatch, useSelector} from 'react-redux';
 import DataRendering from '../../components/Data';
+import ErrorHandling from '../../components/ErrorHandling';
+import NetInfo from '@react-native-community/netinfo';
 
 export default function MainPage() {
-  let [coordinates, setCoordinates] = useState(null);
+  let [loader, setLoader] = useState(true);
+  let [triggerError, setTriggerError] = useState(false);
+  let statusCityRef = useRef(statusCity);
+  let statusCurrentRef = useRef(statusCurrent);
+  let statusFiveRef = useRef(statusFive);
+
   const dispatch = useDispatch();
-  const status = useSelector((state) => {
-    return  state.fetchTempReducer.status
+
+  const statusFive = useSelector((state) => {
+    return state.fetchTempReducer.statusFive;
   });
-  
+  statusFiveRef.current = statusFive;
+
+  const statusCurrent = useSelector((state) => {
+    return state.fetchTempReducer.statusCurrent;
+  });
+  statusCurrentRef.current = statusCurrent;
+
+  const statusCity = useSelector((state) => {
+    return state.fetchTempReducer.statusCity;
+  });
+  statusCityRef.current = statusCity;
+
   useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      if (!state.isConnected) {
+        setLoader(false);
+        setTriggerError(true);
+      } 
+    });
     getGeoLocation();
+    let timer1 = setTimeout(() => {
+      setLoader(false);
+      if (
+        statusCityRef.current == false ||
+        statusCurrentRef.current == false ||
+        statusFiveRef.current === false
+      ) {
+        setTriggerError(true);
+      }
+    }, 10000);
+
+    return () => {
+      clearTimeout(timer1);
+      unsubscribe;
+    };
   }, []);
+
+  useEffect(() => {
+    if (statusCity && statusFive && statusCurrent) {
+      setLoader(false);
+    }
+  }, [statusCity, statusFive, statusCurrent]);
 
   const getGeoLocation = async () => {
     const anotherFunc = await hasLocationPermission();
@@ -27,8 +72,9 @@ export default function MainPage() {
         let payload = {};
         payload.lat = latitude;
         payload.lng = longitude;
-        setCoordinates(payload)
-        dispatch({type: 'FETCH_TEMPERATURE', payload});
+        dispatch({type: 'FETCH_TEMPERATURE_FIVE_DAYS', payload});
+        dispatch({type: 'FETCH_TEMPERATURE_CURRENT', payload});
+        dispatch({type: 'GET_CITY', payload});
       },
       (error) => {
         Alert.alert(
@@ -83,6 +129,8 @@ export default function MainPage() {
           },
         ]);
       } else if (status === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+        setLoader(false);
+        setTriggerError(true);
         Alert.alert('Alert', 'Location permission revoked by user', [
           {
             text: 'Cancel',
@@ -92,17 +140,53 @@ export default function MainPage() {
           },
         ]);
       }
-
+      setLoader(false);
+      setTriggerError(true);
       return false;
     }
   };
 
-
-
+  const startLoader = (data) => {
+    if (data == true) {
+      setLoader(true);
+      setTriggerError(false);
+      NetInfo.fetch().then(state => {
+        if(state.isConnected){
+          getGeoLocation();
+        }
+        else {
+          setLoader(false);
+          setTriggerError(true);
+        }
+      });
+      
+      let timer1 = setTimeout(() => {
+        setLoader(false);
+        if (
+          statusCityRef.current == false ||
+          statusCurrentRef.current == false ||
+          statusFiveRef.current == false
+        ) {
+          setTriggerError(true);
+        }
+      }, 10000);
+      return () => {
+        clearTimeout(timer1);
+      };
+    }
+  };
 
   return (
     <View style={{flex: 1}}>
-       {status == false ? <Loader /> :<DataRendering coordinates={coordinates}/>}
+      {triggerError == false ? (
+        loader == true ? (
+          <Loader />
+        ) : (
+          <DataRendering />
+        )
+      ) : (
+        <ErrorHandling startLoader={startLoader} />
+      )}
     </View>
   );
 }

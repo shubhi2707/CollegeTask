@@ -1,25 +1,22 @@
-import React, {useEffect} from 'react';
-import {View, Text, ImageBackground} from 'react-native';
-
-import constants from '../../constants';
+import React from 'react';
+import {View} from 'react-native';
+import BackgroundImage from '../BackgroundImage';
 import City from '../City';
+import WeekTemperature from '../WeekTemperature';
+import styles from './style';
 
 export default function DataRendering(props) {
+ 
+
   return (
-    <ImageBackground
-      source={constants.SunnyImage}
-      style={{width: '100%', height: '100%'}}>
+    <BackgroundImage>
       <View
-        style={{
-          flex: 1,
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
+        style={styles.cityContainer}>
         <City {...props} />
       </View>
-      <View style={{flex: 2, borderWidth: 2}}>
-          
+      <View style={styles.weekContainer}>
+        <WeekTemperature {...props} />
       </View>
-    </ImageBackground>
+    </BackgroundImage>
   );
 }

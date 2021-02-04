@@ -7,7 +7,6 @@
  */
 
 import React from 'react';
-import {StatusBar} from 'react-native'
 import MainPage from './src/screens/MainPage';
 import {Provider} from 'react-redux';
 import { createStore,applyMiddleware } from 'redux'
@@ -23,7 +22,6 @@ sagaMiddleware.run(mySaga)
 const App: () => React$Node = () => {
   return (
     <Provider store={store}>
-      <StatusBar hidden={false} barStyle="dark-content" backgroundColor="transparent" translucent/>
       <MainPage />
     </Provider>
   );

@@ -10,6 +10,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: wp('7%'),
   },
+
 });
 
 export default styles;
